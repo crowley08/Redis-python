@@ -28,16 +28,38 @@ class Server:
         self.fd = self.server_socket.fileno()
         self.epoll.register(self.fd, select.EPOLLIN | select.EPOLLOUT)
         self.sockets[self.fd] = self.server_socket
+        
+        try:
+            while True:
+                events = self.epoll.poll(1)
+                for fd, event in events:
+                    sock = self.sockets[fd]
+                    if sock is self.server_socket:
+                        self.accept_new_connection()
+                    else:
+                        self.handle_client_events(fd, sock, event)
+        except KeyboardInterrupt:
+            self.shutdown()
 
-        while True:
-            events = self.epoll.poll(1)
+    def shutdown(self):
+        print("\nshutting the server down...")
+        for fd, sock in list(self.sockets.items()):
+            try:
+                self.epoll.unregister(fd)
+            except Exception:
+                pass
+            
+            try:
+                sock.close()
+            except:
+                pass
+            
+        try:
+            self.epoll.close()
+        except Exception:
+            pass
 
-            for fd, event in events:
-                sock = self.sockets[fd]
-                if sock is self.server_socket:
-                    self.accept_new_connection()
-                else:
-                    self.handle_client_events(fd, sock, event)
+        print("Server stopped!!!")
 
     def accept_new_connection(self):
         try:
