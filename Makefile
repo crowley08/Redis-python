@@ -11,5 +11,6 @@ clean:
 
 fclean: clean
 	rm -f *.log
+	clear
 
 re: fclean all
